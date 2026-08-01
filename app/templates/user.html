@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="header">
+            <div><img src="{{ user.avatar(128) }}"></div>
+            <div><h1>User: {{ user.username }}</h1></div>
+    </div>
+    <hr>
+   <div class="wrapper">
+        <div class="flex-item contacts">
+            {% for contact in contacts %}
+                <div class="clickable" data-id="{{ contact.id }}">
+                    {{ contact.username }}
+                </div>
+            {% endfor %}
+        </div>
+        <div class="flex-item messages">
+            <div id="output-box">
+                Здесь будет переписка c пользователем, которого вы выберите
+            </div>
+            <script>
+                const items = document.querySelectorAll('.clickable');
+                const output = document.getElementById('output-box');
+
+                items.forEach(item => {
+                    item.addEventListener('click', function() {
+                        const itemId = this.getAttribute('data-id');
+
+                        // Отправляем асинхронный запрос во Flask
+                        fetch(`/get-content/${itemId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                // Сразу обновляем контент в отдельном теге
+                                output.innerHTML = data.html;
+                            })
+                            .catch(error => console.error('Ошибка:', error));
+                    });
+                });
+            </script>
+        </div>
+    </div>
+
+{% endblock %}

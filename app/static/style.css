@@ -1,0 +1,79 @@
+/*
+h1 {
+    color: rgb(255, 150, 155);
+    text-align: align
+}
+
+img {
+    height: 50vh;
+}
+
+.yellow-center {
+    color: rgb(255, 255, 0);
+    text-align: center
+}
+
+h1.red-right {
+    color: red;
+    text-align: right
+}
+
+p.red-justify {
+    color: rgb(255, 50, 0);
+    text-align: justify;
+    margin: 20px; /* внутренний отступ контента от границ элемента
+}
+*/
+.wrapper {
+    display: flex; /* создает элемент, внутри которого элементы располагаются горизонтально относительно друг друга */
+    border: 2px #aaa solid;
+    /*
+    solid - одинарная линия
+    double - двойная линия
+    dotted - точками
+    dashed - пунктирами
+    */
+    height: 90vh; /* vh - view height (видимая высота) */
+}
+
+.header {
+    display: flex; /* создает элемент, внутри которого элементы располагаются горизонтально относительно друг друга */
+    border: 2px #aaa solid;
+}
+
+.flex-item {
+    padding: 1%; /* отступ снаружи */
+    margin: 10px; /* отступ контента от границ элемента */
+    border: 1px #ccc solid;
+}
+
+.contacts {
+    flex-basis: 20%;
+}
+
+.messages {
+    flex-basis: 80%;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

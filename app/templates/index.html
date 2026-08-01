@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+     {% if user %}
+        <h1 style="color:{{color_time}}">{{ time_day }}, {{ user.username }}</h1>
+            {% for message in messages %}
+                 <div>
+                     <p style="color : red"><b>ВАМ СООБЩЕНИЕ ОТ {{message.author.username}} : </b> {{message.body}} </p>
+                 </div>
+        {% endfor %}
+    {% else %}
+        <h1>Hello, Anonymous </h1>
+        <ul>
+            {% for product in products %}
+                <li>{{product}}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

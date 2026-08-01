@@ -1,0 +1,7 @@
+{% for message in messages %}
+    <div>
+        {{  message.author.username }} написал: <b>{{ message.body }}</b>
+    </div>
+{% else %}
+    у вас пока нет переписки с этим пользователем
+{% endfor %}
