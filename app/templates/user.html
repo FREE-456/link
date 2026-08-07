@@ -15,27 +15,97 @@
             {% endfor %}
         </div>
         <div class="flex-item messages">
+            <form id="message-form" style="display: none;"> <!-- Изначально скрываем форму, пока не выбран контакт -->
+                {{ form.csrf_token }} <!-- ОБЯЗАТЕЛЬНО для работы validate_on_submit() -->
+                <p>
+                    {{ form.content.label }}<br>
+                    {{ form.content(size=140, id="message-input") }}
+                </p>
+                <p>
+                     {{ form.submit(class="send") }}
+                </p>
+            </form>
             <div id="output-box">
                 Здесь будет переписка c пользователем, которого вы выберите
             </div>
             <script>
                 const items = document.querySelectorAll('.clickable');
                 const output = document.getElementById('output-box');
+                const messageForm = document.getElementById('message-form');
+                const messageInput = document.getElementById('message-input');
 
+                // В начале берем ID из параметров Flask, если он там есть
+                let currentRecipientId = {{ chat_with_id or 'null' }};
+                let autoRefreshTimer = null;
+
+                function loadMessages(recipientId) {
+                    if (!recipientId) return;
+                    fetch(/get-content/${recipientId})
+                        .then(response => response.json())
+                        .then(data => {
+                            output.innerHTML = data.html;
+                        })
+                        .catch(error => console.error('Ошибка загрузки:', error));
+                }
+
+                // Функция для активации чата
+                function activateChat(recipientId) {
+                    currentRecipientId = recipientId;
+                    messageForm.style.display = 'block';
+
+                    // Меняем URL в адресной строке БЕЗ перезагрузки страницы, чтобы при ручном обновлении чат сохранялся
+                    const newUrl = window.location.pathname + '?chat_with=' + recipientId;
+                    window.history.replaceState({ path: newUrl }, '', newUrl);
+
+                    loadMessages(currentRecipientId);
+
+                    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+                    autoRefreshTimer = setInterval(() => {
+                        loadMessages(currentRecipientId);
+                    }, 3000);
+                }
+
+                // Клик по контакту
                 items.forEach(item => {
                     item.addEventListener('click', function() {
-                        const itemId = this.getAttribute('data-id');
-
-                        // Отправляем асинхронный запрос во Flask
-                        fetch(`/get-content/${itemId}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                // Сразу обновляем контент в отдельном теге
-                                output.innerHTML = data.html;
-                            })
-                            .catch(error => console.error('Ошибка:', error));
+                        const id = this.getAttribute('data-id');
+                        activateChat(id);
                     });
                 });
+
+
+                if (currentRecipientId) {
+                    activateChat(currentRecipientId);
+                }
+                // Отправка формы без перезагрузки страницы
+                messageForm.addEventListener('submit', function(event) {
+                    event.preventDefault(); // Стопорим стандартную перезагрузку браузера!
+
+                    if (!currentRecipientId) {
+                        alert('Сначала выберите контакт!');
+                        return;
+                    }
+
+                    // Собираем текст сообщения и CSRF-токен из формы
+                    const formData = new FormData(messageForm);
+
+                    // Отправляем POST запрос на ваш роут во Flask
+                    fetch(/send-message/${currentRecipientId}, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            messageInput.value = ''; // Очищаем поле ввода после успешной отправки
+                            loadMessages(currentRecipientId); // Сразу обновляем чат, чтобы увидеть сообщение
+                        } else {
+                            alert('Ошибка при отправке: ' + JSON.stringify(data.error));
+                        }
+                    })
+                    .catch(error => console.error('Ошибка отправки:', error));
+                });
+
             </script>
         </div>
     </div>
