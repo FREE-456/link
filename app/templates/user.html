@@ -1,20 +1,29 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="header">
-            <div><img src="{{ user.avatar(128) }}"></div>
-            <div><h1>User: {{ user.username }}</h1></div>
-    </div>
+    <table>
+        <tr valign="top" >
+            <td><img src="{{ user.avatar(64) }}"></td>
+            <td><h1>User: {{ user.username }}</h1></td>
+        </tr>
+    </table>
     <hr>
-   <div class="wrapper">
+    <div class="wrapper">
         <div class="flex-item contacts">
             {% for contact in contacts %}
-                <div class="clickable" data-id="{{ contact.id }}">
+                <div class="clickable" data-id="{{ contact.id }}" style="color:{%if chat_with_id == contact.id%} red {% else %} black {%endif%}">
                     {{ contact.username }}
+                    <span class="unread-badge" id="badge-{{contact.id}}"
+                    style="background : #007bff; color : white; border-radius: 50%; padding : 2px 7px;
+                        font-size : 12px; margin-left : 10px; font-weight : bold"
+                    >
+                        0
+                    </span>
                 </div>
             {% endfor %}
         </div>
         <div class="flex-item messages">
+            <!-- Удалили action, добавили id, убрали перезагрузку -->
             <form id="message-form" style="display: none;"> <!-- Изначально скрываем форму, пока не выбран контакт -->
                 {{ form.csrf_token }} <!-- ОБЯЗАТЕЛЬНО для работы validate_on_submit() -->
                 <p>
@@ -23,12 +32,16 @@
                 </p>
                 <p>
                      {{ form.submit(class="send") }}
+                    <!-- Заменяем {{ form.submit }} на простую кнопку типа button -->
+<!--                    <button type="button" id="send-btn" class="send">Отправить</button>-->
                 </p>
             </form>
+
             <div id="output-box">
-                Здесь будет переписка c пользователем, которого вы выберите
+                Здесь будет переписка с пользователем, которого вы выберете
             </div>
-            <script>
+
+             <script>
                 const items = document.querySelectorAll('.clickable');
                 const output = document.getElementById('output-box');
                 const messageForm = document.getElementById('message-form');
@@ -38,9 +51,10 @@
                 let currentRecipientId = {{ chat_with_id or 'null' }};
                 let autoRefreshTimer = null;
 
+                // Загрузка сообщений в чат
                 function loadMessages(recipientId) {
                     if (!recipientId) return;
-                    fetch(/get-content/${recipientId})
+                    fetch(`/get-content/${recipientId}`)
                         .then(response => response.json())
                         .then(data => {
                             output.innerHTML = data.html;
@@ -48,35 +62,115 @@
                         .catch(error => console.error('Ошибка загрузки:', error));
                 }
 
+                // Пометить сообщения конкретного пользователя как прочитанные
+                function markAsRead(senderId) {
+                    // Берем CSRF-токен прямо из вашей формы
+                    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+                    fetch(`/mark-messages-read`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken // Передаем токен для Flask-WTF
+                        },
+                        body: JSON.stringify({ sender_id: senderId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Как только сервер подтвердил прочтение — визуально убираем бейдж у этого контакта
+                            const badge = document.getElementById(`badge-${senderId}`);
+                            if (badge) {
+                                badge.style.display = 'none';
+                                badge.textContent = '0';
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Ошибка маркировки прочитанным:', error));
+                }
+
+                // Получить количество непрочитанных для всех контактов
+                function checkUnreadMessages() {
+                    fetch(`/get-unread-counts`)
+                        .then(response => response.json())
+                        .then(counts => {
+                            // counts придет в формате: { "1": 3, "5": 0 } (где ключ - ID отправителя, значение - сколько сообщений)
+                            items.forEach(item => {
+                                const id = item.getAttribute('data-id');
+                                const badge = document.getElementById(`badge-${id}`);
+
+                                // Если мы СЕЙЧАС в чате с этим пользователем, не нужно показывать ему новые маркеры,
+                                // мы их сразу читаем.
+                                if (id == currentRecipientId) {
+                                    if (counts[id] > 0) {
+                                        markAsRead(id); // Гасим на сервере, если прилетели новые пока мы сидим в чате
+                                    }
+                                    return;
+                                }
+
+                                // Для остальных контактов зажигаем или тушим бейджи
+                                if (counts[id] && counts[id] > 0) {
+                                    badge.textContent = counts[id];
+                                    badge.style.display = 'inline-block';
+                                } else {
+                                    badge.style.display = 'none';
+                                }
+                            });
+                        })
+                        .catch(error => console.error('Ошибка получения счетчиков:', error));
+                }
+
                 // Функция для активации чата
                 function activateChat(recipientId) {
                     currentRecipientId = recipientId;
                     messageForm.style.display = 'block';
 
-                    // Меняем URL в адресной строке БЕЗ перезагрузки страницы, чтобы при ручном обновлении чат сохранялся
                     const newUrl = window.location.pathname + '?chat_with=' + recipientId;
                     window.history.replaceState({ path: newUrl }, '', newUrl);
 
+                    // 1. Сразу читаем сообщения от этого пользователя
+                    markAsRead(recipientId);
+                    // 2. Загружаем историю переписки
                     loadMessages(currentRecipientId);
 
+                    // Перезапуск таймера (каждые 3 секунды обновляем и чат, и проверяем маркеры у других)
                     if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+
+                    // Запускаем проверку счетчиков сразу при смене чата
+                    checkUnreadMessages();
+
                     autoRefreshTimer = setInterval(() => {
                         loadMessages(currentRecipientId);
+                        checkUnreadMessages(); // Проверяем непрочитанные от других людей
                     }, 3000);
                 }
+
 
                 // Клик по контакту
                 items.forEach(item => {
                     item.addEventListener('click', function() {
                         const id = this.getAttribute('data-id');
+                        for (const item of items) {
+                            if (item.getAttribute('data-id') == id) {
+                                item.style.fontWeight = 'bold'
+                            }
+                            else {
+                                item.style.fontWeight = 'normal'
+                            }
+                        }
                         activateChat(id);
                     });
                 });
 
-
+                // ЕСЛИ СТРАНИЦУ ПЕРЕЗАГРУЗИЛИ, но в URL был ID чата — открываем его автоматически
                 if (currentRecipientId) {
                     activateChat(currentRecipientId);
+                } else {
+                    // Если ни один чат не открыт, все равно запускаем таймер только на проверку маркеров
+                    checkUnreadMessages();
+                    setInterval(checkUnreadMessages, 3000);
                 }
+
                 // Отправка формы без перезагрузки страницы
                 messageForm.addEventListener('submit', function(event) {
                     event.preventDefault(); // Стопорим стандартную перезагрузку браузера!
@@ -90,7 +184,7 @@
                     const formData = new FormData(messageForm);
 
                     // Отправляем POST запрос на ваш роут во Flask
-                    fetch(/send-message/${currentRecipientId}, {
+                    fetch(`/send-message/${currentRecipientId}`, {
                         method: 'POST',
                         body: formData
                     })

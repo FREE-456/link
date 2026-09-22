@@ -1,7 +1,41 @@
 {% for message in messages %}
-    <div>
-        {{  message.author.username }} написал: <b>{{ message.body }}</b>
-    </div>
+    {% if message.author.username == current_user.username %}
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+            <div style="max-width:50%; width:max-content; background-color:#007bff; color:white; padding:10px; border-radius:8px; word-break:break-word;">
+                <div class="small-text" >
+                    {{message.timestamp.date()}}
+                    {% if message.timestamp.hour < 10%}
+                    0
+                    {%endif%}
+                    {{message.timestamp.hour}}
+                    :
+                    {% if message.timestamp.minute < 10%}
+                    0
+                    {%endif%}
+                    {{message.timestamp.minute}}
+                </div>
+                {{ message.body }}
+            </div>
+        </div>
+    {% else %}
+        <div style="display:flex; justify-content:flex-start; margin-bottom:10px;">
+            <div style="max-width:50%; width:max-content; background-color:#eee; color:black; padding:10px; border-radius:8px; word-break:break-word;">
+                <div class="small-text" >
+                    {{message.timestamp.date()}}
+                    {% if message.timestamp.hour < 10%}
+                    0
+                    {%endif%}
+                    {{message.timestamp.hour}}
+                    :
+                    {% if message.timestamp.minute < 10%}
+                    0
+                    {%endif%}
+                    {{message.timestamp.minute}}
+                </div>
+                {{ message.body }}
+            </div>
+        </div>
+    {% endif %}
 {% else %}
     у вас пока нет переписки с этим пользователем
 {% endfor %}

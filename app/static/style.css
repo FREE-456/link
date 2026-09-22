@@ -1,29 +1,15 @@
-/*
-h1 {
-    color: rgb(255, 150, 155);
-    text-align: align
+html; body{
+    margin: 0;
+    padding: 0;
+    height: 100%;
 }
-
-img {
-    height: 50vh;
+body{
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden !important;
 }
-
-.yellow-center {
-    color: rgb(255, 255, 0);
-    text-align: center
-}
-
-h1.red-right {
-    color: red;
-    text-align: right
-}
-
-p.red-justify {
-    color: rgb(255, 50, 0);
-    text-align: justify;
-    margin: 20px; /* внутренний отступ контента от границ элемента
-}
-*/
 .wrapper {
     display: flex; /* создает элемент, внутри которого элементы располагаются горизонтально относительно друг друга */
     border: 2px #aaa solid;
@@ -33,31 +19,43 @@ p.red-justify {
     dotted - точками
     dashed - пунктирами
     */
-    height: 90vh; /* vh - view height (видимая высота) */
-}
-
-.header {
-    display: flex; /* создает элемент, внутри которого элементы располагаются горизонтально относительно друг друга */
-    border: 2px #aaa solid;
+    flex: 1;
+    min-height: 0;
+    box-sizing: border-box;
+    width: 100%;
+    gap: 20px;
+    margin-bottom: 10px;
 }
 
 .flex-item {
-    padding: 1%; /* отступ снаружи */
-    margin: 10px; /* отступ контента от границ элемента */
+    margin: 1%; /* отступ контента от границ элемента */
     border: 1px #ccc solid;
+    padding-right: 2%;
+    padding-left: 2%;
 }
 
 .contacts {
-    flex-basis: 20%;
+    overflow-y: auto;
+    flex: 0 0 20%;
+    min-width: 0;
 }
 
 .messages {
-    flex-basis: 80%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
+.small-text {
+    font-size: 0.7em;
+    color: #aaa;
+}
 
-
-
+#output-box{
+    overflow-y: auto;
+}
 
 
 

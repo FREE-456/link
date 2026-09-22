@@ -50,6 +50,7 @@ class Message(db.Model):
     )
     sender_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
     receiver_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    is_read: so.Mapped[bool] = so.mapped_column(default=False)
 
     author: so.Mapped[User] = so.relationship(
         back_populates='sent_messages',
